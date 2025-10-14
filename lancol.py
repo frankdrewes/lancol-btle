@@ -48,7 +48,6 @@ def detection_callback( device: BLEDevice, data: AdvertisementData):
     
 def decode_voltage(name):
     value = float(name.split()[-1].rstrip('V'))
-    print(value)  # Output: 12.92
     return value
 
 async def scan():
