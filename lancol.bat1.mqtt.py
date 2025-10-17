@@ -14,17 +14,22 @@ from rich.table import Table
 from rich.console import Console
 import json
 import paho.mqtt.client as mqtt
+from dotenv import load_dotenv
+import os
 
 console = Console()
+
+load_dotenv()  # Loads from .env by default
 
 # Flag to stop scanning once a value is found
 found = asyncio.Event()
 
-MQTT_SERVER = "mosquitto.sunsetlogger.com"  
-MQTT_USERNAME = "homeassist"
-MQTT_PASSWORD = "Home7437Assist6201#!"
+MQTT_SERVER = os.getenv("MQTT_SERVER")
+MQTT_SERVER_PORT = int(os.getenv("MQTT_PORT", 1883))
+MQTT_USERNAME = os.getenv("MQTT_USERNAME")
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
+
 MQTT_TOPIC =  "sensor/lancol1"
-MQTT_SERVER_PORT = 1883
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
