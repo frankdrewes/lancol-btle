@@ -29,7 +29,7 @@ MQTT_SERVER_PORT = int(os.getenv("MQTT_PORT", 1883))
 MQTT_USERNAME = os.getenv("MQTT_USERNAME")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
-MQTT_TOPIC =  "sensor/boat/batterty/2"
+MQTT_TOPIC =  "sensor/boat/battery/2"
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
