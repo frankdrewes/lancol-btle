@@ -29,14 +29,14 @@ MQTT_SERVER_PORT = int(os.getenv("MQTT_PORT", 1883))
 MQTT_USERNAME = os.getenv("MQTT_USERNAME")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
-MQTT_TOPIC =  "sensor/lancol1"
+MQTT_TOPIC =  "sensor/boat/batterty/2"
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
    
 def detection_callback(device: BLEDevice, data: AdvertisementData):
         
-    if not data.local_name or not data.local_name.startswith('Lancol'):
+    if not device.address == '3C:E4:B0:A4:DF:89':
         return
 
     device_data = data.manufacturer_data.get(58428) # manufacturer ID
