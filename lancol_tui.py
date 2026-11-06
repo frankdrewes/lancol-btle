@@ -20,7 +20,7 @@ DEVICE_ADDRESSES = (
     "3C:E4:B0:A4:DF:F6",
 )
 VOLTAGE_HISTORY_SIZE = 30
-SPARKLINE_BLOCKS = "▁▂▃▄▅▆▇█"
+VOLTAGE_CHART_HEIGHT = 5
 
 
 def decode_voltage(name: str | None) -> float | None:
@@ -33,21 +33,27 @@ def decode_voltage(name: str | None) -> float | None:
         return None
 
 
-def render_sparkline(values: list[float]) -> str:
+def render_voltage_chart(values: list[float]) -> str:
     if not values:
         return ""
 
     minimum = min(values)
-    span = max(values) - minimum
-    if span == 0:
-        return SPARKLINE_BLOCKS[len(SPARKLINE_BLOCKS) // 2] * len(values)
+    maximum = max(values)
+    padding = max((maximum - minimum) * 0.1, 0.05)
+    low = minimum - padding
+    high = maximum + padding
+    chart = [[" "] * len(values) for _ in range(VOLTAGE_CHART_HEIGHT)]
+    for column, value in enumerate(values):
+        row = round((high - value) / (high - low) * (VOLTAGE_CHART_HEIGHT - 1))
+        chart[row][column] = "*"
 
-    return "".join(
-        SPARKLINE_BLOCKS[
-            round((value - minimum) / span * (len(SPARKLINE_BLOCKS) - 1))
-        ]
-        for value in values
-    )
+    lines = []
+    for row, points in enumerate(chart):
+        level = high - row * (high - low) / (VOLTAGE_CHART_HEIGHT - 1)
+        lines.append(f"{level:5.2f} |{''.join(points)}")
+    lines.append(f"       +{'-' * len(values)}")
+    lines.append(f"        oldest{' ' * max(1, len(values) - 17)}newest")
+    return "\n".join(lines)
 
 
 class DeviceUpdate(Message):
@@ -91,14 +97,11 @@ class DevicePanel(Static):
         else:
             voltage = "Waiting for data"
         text.append(f"{voltage}\n\n")
-        text.append("Voltage history (last 30 readings)\n", style="bold cyan")
+        text.append("Voltage history (oldest -> newest)\n", style="bold cyan")
         if self.voltage_history:
             history = list(self.voltage_history)
-            text.append(render_sparkline(history), style="green")
-            text.append(
-                f"\n{min(history):.2f}–{max(history):.2f} V\n\n",
-                style="dim",
-            )
+            text.append(render_voltage_chart(history), style="green")
+            text.append("\n\n")
         else:
             text.append("Waiting for voltage readings\n\n", style="dim")
         text.append("Signal\n", style="bold cyan")
