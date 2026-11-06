@@ -88,7 +88,6 @@ class LancolApp(App[None]):
     TITLE = "Lancol BTLE Monitor"
     BINDINGS = [
         ("q", "quit", "Quit"),
-        ("ctrl+c", "quit", "Quit", False),
     ]
     CSS = """
     Grid {
