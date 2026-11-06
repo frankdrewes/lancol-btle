@@ -1,6 +1,7 @@
 import asyncio
 from collections import deque
 from datetime import datetime
+from itertools import count
 
 from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
@@ -10,7 +11,7 @@ from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Grid
 from textual.message import Message
-from textual.widgets import Footer, Header, Static
+from textual.widgets import DataTable, Footer, Header, Static
 
 
 MANUFACTURER_ID = 58428
@@ -120,6 +121,7 @@ class DevicePanel(Static):
 class LancolApp(App[None]):
     TITLE = "Lancol BTLE Monitor"
     BINDINGS = [
+        ("t", "toggle_view", "Toggle table/panels"),
         ("q", "quit", "Quit"),
     ]
     CSS = """
@@ -140,18 +142,36 @@ class LancolApp(App[None]):
         height: 1;
         padding: 0 1;
     }
+
+    #readings-table {
+        height: 1fr;
+        margin: 1 2;
+    }
     """
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with Grid():
+        with Grid(id="panel-view"):
             yield DevicePanel(DEVICE_ADDRESSES[0], panel_id="device-one")
             yield DevicePanel(DEVICE_ADDRESSES[1], panel_id="device-two")
+        yield DataTable(id="readings-table")
         yield Static("Starting Bluetooth scan…", id="status")
         yield Footer()
 
     def on_mount(self) -> None:
+        table = self.query_one("#readings-table", DataTable)
+        table.add_columns("Time", "Device", "Voltage", "Signal")
+        table.display = False
+        self._table_row_ids = deque(maxlen=100)
+        self._row_id = count()
         self.run_worker(self.scan_devices(), name="ble-scan", exclusive=True)
+
+    def action_toggle_view(self) -> None:
+        panels = self.query_one("#panel-view", Grid)
+        table = self.query_one("#readings-table", DataTable)
+        show_table = not table.display
+        panels.display = not show_table
+        table.display = show_table
 
     def on_device_update(self, message: DeviceUpdate) -> None:
         panel_id = (
@@ -160,6 +180,18 @@ class LancolApp(App[None]):
             else "device-two"
         )
         self.query_one(f"#{panel_id}", DevicePanel).update_telemetry(message)
+        table = self.query_one("#readings-table", DataTable)
+        row_id = str(next(self._row_id))
+        table.add_row(
+            message.received_at,
+            message.address,
+            f"{message.voltage:.2f} V" if message.voltage is not None else "Unavailable",
+            f"{message.rssi} dBm",
+            key=row_id,
+        )
+        if len(self._table_row_ids) == self._table_row_ids.maxlen:
+            table.remove_row(self._table_row_ids[0])
+        self._table_row_ids.append(row_id)
 
     async def scan_devices(self) -> None:
         scanner = BleakScanner(self.on_advertisement)
@@ -170,7 +202,7 @@ class LancolApp(App[None]):
             return
 
         self.query_one("#status", Static).update(
-            "Scanning for the two Lancol devices — press Q to quit."
+            "Scanning for Lancol devices — press T to toggle views, Q to quit."
         )
         try:
             await asyncio.Event().wait()
