@@ -50,7 +50,7 @@ class DevicePanel(Static):
     def __init__(self, address: str, *, panel_id: str) -> None:
         super().__init__(id=panel_id)
         self.address = address
-        self.name = "Waiting for advertisement"
+        self.device_name = "Waiting for advertisement"
         self.voltage: float | None = None
         self.rssi: int | None = None
         self.received_at: str | None = None
@@ -60,7 +60,7 @@ class DevicePanel(Static):
         text.append("Device Address\n", style="bold cyan")
         text.append(f"{self.address}\n\n")
         text.append("Name\n", style="bold cyan")
-        text.append(f"{self.name}\n\n")
+        text.append(f"{self.device_name}\n\n")
         text.append("Voltage\n", style="bold cyan")
         if self.voltage is not None:
             voltage = f"{self.voltage:.2f} V"
@@ -77,7 +77,7 @@ class DevicePanel(Static):
         return text
 
     def update_telemetry(self, message: DeviceUpdate) -> None:
-        self.name = message.name
+        self.device_name = message.name
         self.voltage = message.voltage
         self.rssi = message.rssi
         self.received_at = message.received_at
