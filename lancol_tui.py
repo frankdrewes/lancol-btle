@@ -21,6 +21,20 @@ DEVICE_ADDRESSES = (
     "3C:E4:B0:A4:DF:F6",
 )
 VOLTAGE_HISTORY_SIZE = 30
+CHART_ASCII_CHARS = str.maketrans(
+    {
+        "┌": "+",
+        "─": "-",
+        "┐": "+",
+        "┤": "|",
+        "│": "|",
+        "└": "+",
+        "┬": "+",
+        "┴": "+",
+        "┼": "+",
+        "┘": "+",
+    }
+)
 
 
 def decode_voltage(name: str | None) -> float | None:
@@ -45,9 +59,10 @@ def render_voltage_chart(values: list[float], width: int, height: int) -> Text:
     figure.label("Reading", "x")
     figure.label("Voltage (V)", "y")
     figure.draw(
-        figure.signal(range(1, len(values) + 1), values).lines()
+        figure.signal(range(1, len(values) + 1), values, marker="*").lines()
     )
-    return Text.from_ansi(figure.build().string())
+    chart = figure.build().string().translate(CHART_ASCII_CHARS)
+    return Text.from_ansi(chart)
 
 
 class DeviceUpdate(Message):
@@ -98,7 +113,7 @@ class DevicePanel(Static):
                 render_voltage_chart(
                     history,
                     width=max(12, self.size.width - 6),
-                    height=max(6, min(9, self.size.height - 15)),
+                    height=max(8, min(11, self.size.height - 13)),
                 )
             )
             text.append("\n\n")

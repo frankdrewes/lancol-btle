@@ -21,5 +21,6 @@ The app scans continuously and exits when you press `Q` or `Ctrl+C`. Voltage is
 decoded from the device name, and advertisements are accepted only when they
 contain Lancol's manufacturer data. Each device panel also shows a live
 plotext voltage chart of its last 30 readings, with labeled voltage and reading
-axes. Press `T` to switch to a scrolling table of the latest 100 timestamped
-readings, or press `T` again to return to the device panels.
+axes. The plot uses ASCII chart symbols for terminal compatibility and a taller
+vertical scale. Press `T` to switch to a scrolling table of the latest 100
+timestamped readings, or press `T` again to return to the device panels.
