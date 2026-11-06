@@ -1,4 +1,5 @@
 import asyncio
+from collections import deque
 from datetime import datetime
 
 from bleak import BleakScanner
@@ -17,6 +18,8 @@ DEVICE_ADDRESSES = (
     "3C:E4:B0:A4:DF:89",
     "3C:E4:B0:A4:DF:F6",
 )
+VOLTAGE_HISTORY_SIZE = 30
+SPARKLINE_BLOCKS = "▁▂▃▄▅▆▇█"
 
 
 def decode_voltage(name: str | None) -> float | None:
@@ -27,6 +30,23 @@ def decode_voltage(name: str | None) -> float | None:
         return float(name.split()[-1].rstrip("V"))
     except (IndexError, ValueError):
         return None
+
+
+def render_sparkline(values: list[float]) -> str:
+    if not values:
+        return ""
+
+    minimum = min(values)
+    span = max(values) - minimum
+    if span == 0:
+        return SPARKLINE_BLOCKS[len(SPARKLINE_BLOCKS) // 2] * len(values)
+
+    return "".join(
+        SPARKLINE_BLOCKS[
+            round((value - minimum) / span * (len(SPARKLINE_BLOCKS) - 1))
+        ]
+        for value in values
+    )
 
 
 class DeviceUpdate(Message):
@@ -54,6 +74,7 @@ class DevicePanel(Static):
         self.voltage: float | None = None
         self.rssi: int | None = None
         self.received_at: str | None = None
+        self.voltage_history: deque[float] = deque(maxlen=VOLTAGE_HISTORY_SIZE)
 
     def render(self) -> Text:
         text = Text()
@@ -69,6 +90,16 @@ class DevicePanel(Static):
         else:
             voltage = "Waiting for data"
         text.append(f"{voltage}\n\n")
+        text.append("Voltage history (last 30 readings)\n", style="bold cyan")
+        if self.voltage_history:
+            history = list(self.voltage_history)
+            text.append(render_sparkline(history), style="green")
+            text.append(
+                f"\n{min(history):.2f}–{max(history):.2f} V\n\n",
+                style="dim",
+            )
+        else:
+            text.append("Waiting for voltage readings\n\n", style="dim")
         text.append("Signal\n", style="bold cyan")
         signal = f"{self.rssi} dBm" if self.rssi is not None else "Waiting for data"
         text.append(f"{signal}\n\n")
@@ -81,6 +112,8 @@ class DevicePanel(Static):
         self.voltage = message.voltage
         self.rssi = message.rssi
         self.received_at = message.received_at
+        if message.voltage is not None:
+            self.voltage_history.append(message.voltage)
         self.refresh()
 
 
