@@ -3,6 +3,7 @@ from collections import deque
 from datetime import datetime
 from itertools import count
 
+import plotext as plt
 from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
@@ -20,7 +21,6 @@ DEVICE_ADDRESSES = (
     "3C:E4:B0:A4:DF:F6",
 )
 VOLTAGE_HISTORY_SIZE = 30
-VOLTAGE_CHART_HEIGHT = 5
 
 
 def decode_voltage(name: str | None) -> float | None:
@@ -33,27 +33,21 @@ def decode_voltage(name: str | None) -> float | None:
         return None
 
 
-def render_voltage_chart(values: list[float]) -> str:
+def render_voltage_chart(values: list[float], width: int, height: int) -> Text:
     if not values:
-        return ""
+        return Text("Waiting for voltage readings", style="dim")
 
-    minimum = min(values)
-    maximum = max(values)
-    padding = max((maximum - minimum) * 0.1, 0.05)
-    low = minimum - padding
-    high = maximum + padding
-    chart = [[" "] * len(values) for _ in range(VOLTAGE_CHART_HEIGHT)]
-    for column, value in enumerate(values):
-        row = round((high - value) / (high - low) * (VOLTAGE_CHART_HEIGHT - 1))
-        chart[row][column] = "*"
-
-    lines = []
-    for row, points in enumerate(chart):
-        level = high - row * (high - low) / (VOLTAGE_CHART_HEIGHT - 1)
-        lines.append(f"{level:5.2f} |{''.join(points)}")
-    lines.append(f"       +{'-' * len(values)}")
-    lines.append(f"        oldest{' ' * max(1, len(values) - 17)}newest")
-    return "\n".join(lines)
+    figure = plt.figure
+    figure.clear()
+    figure.plot_size(width, height)
+    figure.theme("dark")
+    figure.title("Voltage history (oldest to newest)")
+    figure.label("Reading", "x")
+    figure.label("Voltage (V)", "y")
+    figure.draw(
+        figure.signal(range(1, len(values) + 1), values).lines()
+    )
+    return Text.from_ansi(figure.build().string())
 
 
 class DeviceUpdate(Message):
@@ -97,10 +91,16 @@ class DevicePanel(Static):
         else:
             voltage = "Waiting for data"
         text.append(f"{voltage}\n\n")
-        text.append("Voltage history (oldest -> newest)\n", style="bold cyan")
+        text.append("Voltage history\n", style="bold cyan")
         if self.voltage_history:
             history = list(self.voltage_history)
-            text.append(render_voltage_chart(history), style="green")
+            text.append(
+                render_voltage_chart(
+                    history,
+                    width=max(12, self.size.width - 6),
+                    height=max(6, min(9, self.size.height - 15)),
+                )
+            )
             text.append("\n\n")
         else:
             text.append("Waiting for voltage readings\n\n", style="dim")
