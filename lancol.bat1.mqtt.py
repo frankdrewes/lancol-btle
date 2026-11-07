@@ -77,7 +77,7 @@ def log_to_mqtt(voltage,signal):
     "signal": f"{signal}",
                 }
     
-    client = mqtt.Client()
+    client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
     client.username_pw_set(MQTT_USERNAME,MQTT_PASSWORD)
     client.connect(MQTT_SERVER,int(MQTT_SERVER_PORT), 60)
     mqtt_result= client.publish(MQTT_TOPIC, json.dumps(payload))
